@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevSim: Fintech Crisis</title>
+    <style>
+        :root {
+            --background-color: #2c3e50;
+            --desktop-bg: #34495e;
+            --window-bg: #ecf0f1;
+            --window-border: #bdc3c7;
+            --title-bar-bg: #95a5a6;
+            --title-bar-text: #2c3e50;
+            --text-color: #2c3e50;
+            --accent-color: #3498db;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+        }
+
+        #desktop {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: var(--desktop-bg);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .desktop-icon {
+            color: white;
+            text-align: center;
+            width: 80px;
+            padding: 10px;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 15px;
+        }
+
+        .desktop-icon .icon-graphic {
+            font-size: 40px;
+            line-height: 1;
+        }
+
+        .desktop-icon .icon-label {
+            margin-top: 5px;
+            font-size: 12px;
+            word-wrap: break-word;
+        }
+
+        .window {
+            position: absolute;
+            top: 50px;
+            left: 100px;
+            width: 600px;
+            height: 400px;
+            background: var(--window-bg);
+            border: 1px solid var(--window-border);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: none;
+            flex-direction: column;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .title-bar {
+            background: var(--title-bar-bg);
+            color: var(--title-bar-text);
+            padding: 5px 10px;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .title-bar-controls button {
+            background: var(--danger-color);
+            border: none;
+            color: white;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 10px;
+            line-height: 18px;
+        }
+
+        .window-content {
+            padding: 15px;
+            flex-grow: 1;
+            overflow-y: auto;
+            color: var(--text-color);
+            background: #fdfdfd;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #eee;
+            padding: 10px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        
+        /* App Specific Styles */
+        #mail-app .email-list {
+            width: 30%;
+            float: left;
+            height: 100%;
+            border-right: 1px solid var(--window-border);
+            overflow-y: auto;
+        }
+        #mail-app .email-list-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--window-border);
+        }
+        #mail-app .email-list-item:hover {
+            background: #dcdde1;
+        }
+        #mail-app .email-list-item.unread { font-weight: bold; }
+        #mail-app .email-view {
+            width: 70%;
+            float: left;
+            height: 100%;
+            padding: 0 15px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #mail-app .email-header { border-bottom: 1px solid var(--window-border); padding-bottom: 10px; margin-bottom: 10px; }
+        #mail-app .email-body { font-size: 14px; line-height: 1.6; }
+        #mail-app .email-reply-options button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+        }
+        #mail-app .email-reply-options button:hover { background: #2980b9; }
+
+        #terminal-app .terminal-output { height: 320px; overflow-y: scroll; }
+        #terminal-app .terminal-input-line { display: flex; }
+        #terminal-app .terminal-prompt { color: var(--success-color); }
+        #terminal-app #terminal-input {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            flex-grow: 1;
+            font-family: var(--font-family);
+        }
+        #terminal-app #terminal-input:focus { outline: none; }
+
+        #quest-log-app ul { list-style-type: none; padding: 0; }
+        #quest-log-app li { margin-bottom: 15px; }
+        #quest-log-app h4 { margin-top: 0; margin-bottom: 5px; color: var(--accent-color); }
+        #quest-log-app .quest-status { font-weight: bold; }
+        #quest-log-app .quest-status-complete { color: var(--success-color); }
+        #quest-log-app .quest-status-active { color: #f39c12; }
+        
+        #code-editor-app .tab-bar { border-bottom: 1px solid var(--window-border); }
+        #code-editor-app .tab { display: inline-block; padding: 8px 12px; cursor: pointer; }
+        #code-editor-app .tab.active { background: #fff; border: 1px solid var(--window-border); border-bottom: 1px solid #fff; border-radius: 3px 3px 0 0; position: relative; top: 1px; }
+        #code-editor-app .code-area { display: none; }
+        #code-editor-app .code-area.active { display: block; }
+        #code-editor-app .code-actions { margin-top: 10px; }
+        #code-editor-app button { padding: 8px 12px; background: var(--accent-color); color: white; border: none; cursor: pointer; border-radius: 3px; }
+        #code-editor-app button:disabled { background: #bdc3c7; cursor: not-allowed; }
+        #code-editor-app .comment { color: #95a5a6; }
+        
+        #epilogue-window {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: auto;
+            z-index: 10000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="desktop">
+        <div class="desktop-icon" data-app="mail-app">
+            <div class="icon-graphic">📧</div>
+            <div class="icon-label">Mail</div>
+        </div>
+        <div class="desktop-icon" data-app="terminal-app">
+            <div class="icon-graphic">_></div>
+            <div class="icon-label">Terminal</div>
+        </div>
+        <div class="desktop-icon" data-app="code-editor-app">
+            <div class="icon-graphic">{}</div>
+            <div class="icon-label">CodeEditor</div>
+        </div>
+        <div class="desktop-icon" data-app="quest-log-app">
+            <div class="icon-graphic">🎯</div>
+            <div class="icon-label">QuestLog</div>
+        </div>
+
+        <!-- App Windows -->
+
+        <div id="mail-app" class="window">
+            <div class="title-bar">
+                <span>📧 Mail</span>
+                <div class="title-bar-controls"><button class="close-btn">x</button></div>
+            </div>
+            <div class="window-content" style="padding:0;">
+                <div class="email-list"></div>
+                <div class="email-view"></div>
+            </div>
+        </div>
+
+        <div id="terminal-app" class="window" style="width: 700px; height: 450px;">
+            <div class="title-bar">
+                <span>_> Terminal</span>
+                <div class="title-bar-controls"><button class="close-btn">x</button></div>
+            </div>
+            <div class="window-content">
+                <div class="terminal-output">
+                    <p>DevSim Terminal v1.0</p>
+                    <p>Type 'help' for a list of commands.</p>
+                </div>
+                <div class="terminal-input-line">
+                    <span class="terminal-prompt">user@devsim:~$ </span>
+                    <input type="text" id="terminal-input" autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <div id="code-editor-app" class="window" style="width: 800px; height: 600px;">
+            <div class="title-bar">
+                <span>{} CodeEditor</span>
+                <div class="title-bar-controls"><button class="close-btn">x</button></div>
+            </div>
+            <div class="window-content">
+                <div class="tab-bar">
+                    <div class="tab active" data-tab="payment_processor">payment_processor.py</div>
+                    <div class="tab" data-tab="tests">tests.py</div>
+                </div>
+                <div class="code-area active" data-tab="payment_processor">
+                    <pre id="code-processor-content"></pre>
+                    <div class="code-actions">
+                        <button id="optimize-code-btn" disabled>Optimize Query & Add Cache</button>
+                    </div>
+                </div>
+                <div class="code-area" data-tab="tests">
+                    <pre id="code-tests-content"></pre>
+                    <div class="code-actions">
+                        <button id="write-tests-btn" disabled>Write Unit Tests</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="quest-log-app" class="window" style="width: 500px; height: 550px; left: 150px; top: 150px;">
+            <div class="title-bar">
+                <span>🎯 Quest Log</span>
+                <div class="title-bar-controls"><button class="close-btn">x</button></div>
+            </div>
+            <div class="window-content" id="quest-log-content">
+                <!-- Quest content will be injected here -->
+            </div>
+        </div>
+
+        <div id="epilogue-window" class="window">
+             <div class="title-bar">
+                <span>Game Over</span>
+            </div>
+            <div class="window-content" id="epilogue-content">
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+    (function() {
+        // --- GAME STATE ---
+        const gameState = {
+            quests: {
+                main: { 
+                    title: "Main Quest: Launch the Payment Feature", 
+                    desc: "The new payment processing feature is failing under load. Identify and fix the issues to ensure a stable launch.",
+                    status: "Active" 
+                },
+                sub: [
+                    { id: "identify_bottleneck", title: "Identify the Bottleneck", desc: "Review the system logs to find the root cause of the API failures.", status: "Active" },
+                    { id: "optimize_code", title: "Optimize the Code", desc: "The database query is inefficient. Optimize it and implement a caching layer.", status: "Locked" },
+                    { id: "write_tests", title: "Write Unit Tests", desc: "Ensure the new optimizations are reliable by writing comprehensive unit tests.", status: "Locked" },
+                    { id: "align_frontend", title: "Align on API Contract", desc: "The frontend team has questions about the API. Provide them with a clear, updated contract.", status: "Locked" }
+                ],
+                side: [
+                    { id: "cfo_challenge", title: "Side Quest: The CFO's Deadline", desc: "The CFO wants this feature launched in 48 hours. Formulate a response that balances speed with responsibility.", status: "Locked" }
+                ]
+            },
+            emails: [
+                { id: 3, from: 'Alex (Lead Dev)', subject: 'URGENT: API Failures', body: `Team,<br><br>The new payment processing API is falling over in the staging environment whenever we run a high-traffic simulation. The error messages are generic timeouts, so we're flying blind.<br><br>Your top priority is to figure out what's causing this and get a fix in place. The whole launch is riding on this feature. Start by digging into the server logs. Let me know what you find.`, read: false },
+                { id: 2, from: 'Casey (Frontend Dev)', subject: 'API Contract Question', body: `Hey,<br><br>We're getting ready to integrate the new payment API, but the documentation seems a bit ambiguous on the error response structure. Specifically, what's the payload for a 'declined_insufficient_funds' error?<br><br>Can you clarify and maybe send over an updated spec? The current one is in 'api_docs_v1.txt'. Thanks!`, read: false, locked: true },
+                { id: 1, from: 'Jordan (CFO)', subject: 'Launch Timeline', body: `I just reviewed the project board. This payment feature is critical for our quarterly targets. The market won't wait for us.<br><br>I need this feature live in the next 48 hours. No exceptions. Do whatever it takes to make that happen.`, read: false, locked: true },
+            ],
+            files: {
+                'hint.txt': `HINTS:\n- Sometimes the most obvious problem is the right one. If you see timeouts, check the slowest part of the system: the database.\n- A common performance killer in database-backed applications is the "N+1 query problem". Instead of fetching 100 items one by one, fetch all 100 at once.\n- For data that doesn't change often but is read frequently (like user account details), a cache like Redis can eliminate database load entirely.`,
+                'error.log': `[ERROR] timestamp=2023-10-27T10:30:01Z service=payment-api msg="Request failed: upstream service timeout"\n[INFO] timestamp=2023-10-27T10:30:01Z service=payment-api msg="Processing payment for user_id=123"\n[FATAL] timestamp=2023-10-27T10:30:02Z service=db-connector msg="Database connection timeout after 3000ms"\n[INFO] timestamp=2023-10-27T10:30:03Z service=payment-api msg="Processing payment for user_id=124"\n[FATAL] timestamp=2023-10-27T10:30:04Z service=db-connector msg="Database connection timeout after 3000ms"\n... (log repeats)`,
+                'api_docs_v1.txt': `API DOCUMENTATION v1.0\n\nEndpoint: /api/v1/process_payment\nMethod: POST\nBody: { "userId": string, "amount": number, "currency": string }\n\nSuccess Response (200 OK):\n{ "status": "approved", "transactionId": "xyz-abc" }\n\nError Responses (400 Bad Request):\n- Invalid input: { "error": "invalid_request" }\n- Insufficient funds: { "error": "declined" } // VAGUE! NEEDS FIXING`,
+                'api_docs_v2.txt': `API DOCUMENTATION v2.0 (Updated)\n\nEndpoint: /api/v1/process_payment\nMethod: POST\nBody: { "userId": string, "amount": number, "currency": string }\n\nSuccess Response (200 OK):\n{ "status": "approved", "transactionId": "xyz-abc" }\n\nError Responses:\n- 400 Bad Request: { "error_code": "invalid_request", "message": "Request body is malformed or missing fields." }\n- 402 Payment Required: { "error_code": "insufficient_funds", "message": "The user account has insufficient funds to complete the transaction." }`
+            },
+            code: {
+                unoptimized: `<span class="comment"># Unoptimized code - fetches user and account details in separate queries</span>
+def process_payment(user_id, amount):
+    user = db.query("SELECT * FROM users WHERE id = ?", user_id)
+    if not user:
+        return {"error": "user_not_found"}
+
+    # N+1 Problem: This query is inside a loop or called per-request!
+    account = db.query("SELECT * FROM accounts WHERE user_id = ?", user_id)
+
+    if account.balance < amount:
+        return {"error": "insufficient_funds"}
+
+    # ... payment processing logic ...
+    return {"status": "success"}`,
+                optimized: `<span class="comment"># Optimized with a JOIN and Redis caching</span>
+import redis
+cache = redis.Redis(host='localhost', port=6379)
+
+def process_payment(user_id, amount):
+    # Try fetching from cache first
+    cached_account = cache.get(f"user_account:{user_id}")
+    if cached_account:
+        account = json.loads(cached_account)
+    else:
+        # If not in cache, fetch from DB with an efficient JOIN
+        query = """
+            SELECT u.id, a.balance FROM users u
+            JOIN accounts a ON u.id = a.user_id
+            WHERE u.id = ?
+        """
+        account = db.query(query, user_id)
+        # Store result in cache for 15 minutes
+        cache.set(f"user_account:{user_id}", json.dumps(account), ex=900)
+
+    if account['balance'] < amount:
+        return {"error": "insufficient_funds"}
+    
+    # ... payment processing logic ...
+    return {"status": "success"}`,
+                tests_empty: `<span class="comment"># Test file is empty. We need to add unit tests to ensure reliability.</span>`,
+                tests_filled: `<span class="comment"># Unit tests for payment processor</span>
+import unittest
+
+class TestPaymentProcessor(unittest.TestCase):
+
+    def test_successful_payment(self):
+        # Mocks a successful payment scenario
+        result = process_payment(user_id=1, amount=100)
+        self.assertEqual(result["status"], "success")
+
+    def test_insufficient_funds(self):
+        # Mocks the database to return a low balance
+        result = process_payment(user_id=2, amount=1000)
+        self.assertEqual(result["error"], "insufficient_funds")
+
+    def test_cache_hit(self):
+        # Verifies that the cache is being used on second call
+        process_payment(user_id=3, amount=50) # First call, populates cache
+        
+        # Mocks the DB to fail, but it shouldn't be called
+        # because the result is now in the cache.
+        result = process_payment(user_id=3, amount=50) 
+        self.assertEqual(result["status"], "success")`
+            }
+        };
+
+        // --- UI & APP LOGIC ---
+
+        function updateQuestLog() {
+            const container = document.getElementById('quest-log-content');
+            let html = '';
+            
+            const renderQuest = (q) => {
+                let statusClass = q.status === 'Complete' ? 'quest-status-complete' : 'quest-status-active';
+                if (q.status === 'Locked') statusClass = '';
+                return `<li>
+                    <h4>${q.title} <span class="quest-status ${statusClass}">${q.status}</span></h4>
+                    <p>${q.desc}</p>
+                </li>`;
+            };
+
+            html += `<h3>${gameState.quests.main.title}</h3><ul>${renderQuest(gameState.quests.main)}</ul><hr>`;
+            html += `<h3>Subquests</h3><ul>`;
+            gameState.quests.sub.forEach(q => html += renderQuest(q));
+            html += `</ul><hr>`;
+            html += `<h3>Side Quests</h3><ul>`;
+            gameState.quests.side.forEach(q => html += renderQuest(q));
+            html += `</ul>`;
+
+            container.innerHTML = html;
+        }
+
+        function updateMailApp() {
+            const listContainer = document.querySelector('#mail-app .email-list');
+            listContainer.innerHTML = '';
+            const unlockedEmails = gameState.emails.filter(e => !e.locked);
+            unlockedEmails.forEach(email => {
+                const item = document.createElement('div');
+                item.className = 'email-list-item';
+                if (!email.read) item.classList.add('unread');
+                item.innerHTML = `<strong>${email.from}</strong><br>${email.subject}`;
+                item.addEventListener('click', () => showEmail(email.id));
+                listContainer.appendChild(item);
+            });
+        }
+        
+        function showEmail(emailId) {
+            const email = gameState.emails.find(e => e.id === emailId);
+            if (!email) return;
+
+            email.read = true;
+            updateMailApp();
+
+            const viewContainer = document.querySelector('#mail-app .email-view');
+            let html = `<div class="email-header">
+                <strong>From:</strong> ${email.from}<br>
+                <strong>Subject:</strong> ${email.subject}
+            </div>
+            <div class="email-body">${email.body}</div>`;
+
+            // Add interactive elements for specific emails
+            if (email.id === 2 && gameState.quests.sub[3].status === 'Active') { // Frontend Dev email
+                html += `<div class="email-reply-options">
+                    <p><strong>Compose Reply:</strong></p>
+                    <button data-reply="1">Reply: "The docs are correct as-is."</button>
+                    <button data-reply="2">Reply: "Sorry, I'm too busy with performance issues right now."</button>
+                    <button data-reply="3">Reply with updated documentation (v2)</button>
+                </div>`;
+            }
+            if (email.id === 1 && gameState.quests.side[0].status === 'Active') { // CFO email
+                 html += `<div class="email-reply-options">
+                    <p><strong>Draft response to Lead Dev about this pressure:</strong></p>
+                    <button data-cfo-reply="1">"I'll cut testing to meet the 48hr deadline."</button>
+                    <button data-cfo-reply="2">"I'll deploy the critical performance fixes now and we'll schedule a full security audit post-launch, with mitigations in place."</button>
+                    <button data-cfo-reply="3">"This is impossible. The 48hr deadline is unsafe and I refuse."</button>
+                </div>`;
+            }
+
+            viewContainer.innerHTML = html;
+            
+            // Check for quest triggers on email read
+            if (email.id === 3 && gameState.quests.sub[0].status === 'Active') {
+                // Initial email doesn't complete a quest, but sets the scene.
+            }
+        }
+        
+        function handleTerminalInput(command) {
+            const outputContainer = document.querySelector('#terminal-app .terminal-output');
+            outputContainer.innerHTML += `<p><span class="terminal-prompt">user@devsim:~$ </span>${command}</p>`;
+
+            const [cmd, ...args] = command.split(' ');
+            let response = '';
+
+            switch(cmd) {
+                case 'help':
+                    response = 'Available commands: help, ls, cat [filename], clear';
+                    break;
+                case 'ls':
+                    response = Object.keys(gameState.files).join('\n');
+                    break;
+                case 'cat':
+                    if (args[0] && gameState.files[args[0]]) {
+                        response = gameState.files[args[0]];
+                        // Quest trigger for reading error log
+                        if (args[0] === 'error.log' && gameState.quests.sub[0].status === 'Active') {
+                            completeQuest('sub', 'identify_bottleneck');
+                            unlockQuest('sub', 'optimize_code');
+                            unlockEmail(1); // CFO email arrives
+                            unlockQuest('side', 'cfo_challenge');
+                        }
+                    } else {
+                        response = `cat: ${args[0] || ''}: No such file or directory`;
+                    }
+                    break;
+                case 'clear':
+                     outputContainer.innerHTML = '';
+                     return;
+                default:
+                    response = `${cmd}: command not found`;
+            }
+            outputContainer.innerHTML += `<pre>${response}</pre>`;
+            outputContainer.scrollTop = outputContainer.scrollHeight;
+        }
+
+        function updateCodeEditor() {
+            document.getElementById('code-processor-content').innerHTML = gameState.code.unoptimized;
+            document.getElementById('code-tests-content').innerHTML = gameState.code.tests_empty;
+        }
+
+        // --- QUEST & STATE MANAGEMENT ---
+        
+        function completeQuest(type, id) {
+            const quest = gameState.quests[type].find(q => q.id === id);
+            if (quest) {
+                quest.status = 'Complete';
+                console.log(`Quest Complete: ${quest.title}`);
+                updateQuestLog();
+            }
+        }
+
+        function unlockQuest(type, id) {
+            const quest = gameState.quests[type].find(q => q.id === id);
+            if (quest && quest.status === 'Locked') {
+                quest.status = 'Active';
+                console.log(`Quest Unlocked: ${quest.title}`);
+                updateQuestLog();
+                
+                // Enable UI elements tied to this quest
+                if (id === 'optimize_code') {
+                    document.getElementById('optimize-code-btn').disabled = false;
+                }
+                if (id === 'write_tests') {
+                    document.getElementById('write-tests-btn').disabled = false;
+                }
+                if (id === 'align_frontend') {
+                    unlockEmail(2); // Unlock frontend dev email
+                }
+            }
+        }
+        
+        function unlockEmail(id) {
+            const email = gameState.emails.find(e => e.id === id);
+            if (email && email.locked) {
+                email.locked = false;
+                updateMailApp();
+            }
+        }
+        
+        function checkMainQuestComplete() {
+            const allSubComplete = gameState.quests.sub.every(q => q.status === 'Complete');
+            const cfoComplete = gameState.quests.side[0].status === 'Complete';
+            if(allSubComplete && cfoComplete) {
+                gameState.quests.main.status = 'Complete';
+                updateQuestLog();
+            }
+        }
+
+        function showEpilogue(success) {
+            const epilogueWindow = document.getElementById('epilogue-window');
+            const content = document.getElementById('epilogue-content');
+            if (success) {
+                content.innerHTML = `<h4>SUCCESS!</h4>
+                <p>Your pragmatic and professional response impressed the leadership team. You deployed the critical fixes, stabilizing the platform and allowing for a successful, albeit cautious, launch.</p>
+                <p>The subsequent security audit found only minor issues, which were quickly patched. The feature is a huge success, and you've earned a reputation as a reliable and clear-headed engineer.</p>
+                <p><strong>Main Quest: Complete</strong></p>`;
+            } else {
+                content.innerHTML = `<h4>FAILURE...</h4>
+                <p>Your chosen path led to problems. Either by rushing and causing a security breach, or by refusing to cooperate and causing a major business delay, your relationship with the team and management has been damaged.</p>
+                <p>This crisis will be remembered as a learning experience in balancing technical debt, security, and business needs.</p>
+                <p><strong>Try again to find a better outcome.</strong></p>`;
+            }
+            epilogueWindow.style.display = 'flex';
+        }
+
+        // --- EVENT LISTENERS ---
+
+        function initWindowDragging() {
+            let activeWindow = null;
+            let offsetX, offsetY;
+
+            document.querySelectorAll('.title-bar').forEach(titleBar => {
+                titleBar.addEventListener('mousedown', (e) => {
+                    activeWindow = titleBar.parentElement;
+                    // Bring window to front
+                    document.querySelectorAll('.window').forEach(w => w.style.zIndex = '100');
+                    activeWindow.style.zIndex = '101';
+                    
+                    offsetX = e.clientX - activeWindow.offsetLeft;
+                    offsetY = e.clientY - activeWindow.offsetTop;
+
+                    document.onmousemove = (e) => {
+                        if (activeWindow) {
+                            activeWindow.style.left = `${e.clientX - offsetX}px`;
+                            activeWindow.style.top = `${e.clientY - offsetY}px`;
+                        }
+                    };
+
+                    document.onmouseup = () => {
+                        activeWindow = null;
+                        document.onmousemove = null;
+                        document.onmouseup = null;
+                    };
+                });
+            });
+        }
+        
+        document.querySelectorAll('.desktop-icon').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                const appId = e.currentTarget.dataset.app;
+                const appWindow = document.getElementById(appId);
+                appWindow.style.display = 'flex';
+                // Bring window to front
+                document.querySelectorAll('.window').forEach(w => w.style.zIndex = '100');
+                appWindow.style.zIndex = '101';
+            });
+        });
+
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.currentTarget.closest('.window').style.display = 'none';
+            });
+        });
+        
+        document.getElementById('terminal-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleTerminalInput(e.target.value);
+                e.target.value = '';
+            }
+        });
+
+        document.querySelector('#code-editor-app .tab-bar').addEventListener('click', e => {
+            if (e.target.classList.contains('tab')) {
+                const tabId = e.target.dataset.tab;
+                document.querySelectorAll('#code-editor-app .tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('#code-editor-app .code-area').forEach(a => a.classList.remove('active'));
+                e.target.classList.add('active');
+                document.querySelector(`#code-editor-app .code-area[data-tab="${tabId}"]`).classList.add('active');
+            }
+        });
+        
+        document.getElementById('optimize-code-btn').addEventListener('click', () => {
+            if (gameState.quests.sub[1].status === 'Active') {
+                document.getElementById('code-processor-content').innerHTML = gameState.code.optimized;
+                completeQuest('sub', 'optimize_code');
+                unlockQuest('sub', 'write_tests');
+                document.getElementById('optimize-code-btn').disabled = true;
+            }
+        });
+
+        document.getElementById('write-tests-btn').addEventListener('click', () => {
+            if (gameState.quests.sub[2].status === 'Active') {
+                document.getElementById('code-tests-content').innerHTML = gameState.code.tests_filled;
+                completeQuest('sub', 'write_tests');
+                unlockQuest('sub', 'align_frontend');
+                document.getElementById('write-tests-btn').disabled = true;
+            }
+        });
+        
+        document.getElementById('mail-app').addEventListener('click', e => {
+            // Handle reply to frontend dev
+            if (e.target.matches('[data-reply]')) {
+                const replyId = e.target.dataset.reply;
+                if (replyId === "3") { // Correct answer
+                    completeQuest('sub', 'align_frontend');
+                    checkMainQuestComplete();
+                    showEmail(2); // Re-render email to remove buttons
+                } else {
+                    alert("That's not the most collaborative choice. The frontend team is now blocked. Try again.");
+                }
+            }
+            // Handle reply to CFO challenge
+            if (e.target.matches('[data-cfo-reply]')) {
+                const replyId = e.target.dataset.cfoReply;
+                completeQuest('side', 'cfo_challenge');
+                checkMainQuestComplete();
+                if (replyId === "2") { // Good outcome
+                    showEpilogue(true);
+                } else { // Bad outcome
+                    showEpilogue(false);
+                }
+            }
+        });
+
+        // --- INITIALIZATION ---
+        function init() {
+            initWindowDragging();
+            updateQuestLog();
+            updateMailApp();
+            showEmail(null); // Clear email view
+            updateCodeEditor();
+            console.log("DevSim Initialized. Good luck!");
+        }
+
+        init();
+    })();
+    </script>
+
+</body>
+</html>
